@@ -7,12 +7,16 @@ import com.panchodev.ASR.helpers.AwsBucket;
 import com.panchodev.ASR.service.TranscriptionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @RestController
@@ -25,10 +29,22 @@ public class TranscriptionController {
 
     private final TranscriptionService transcriptionService;
 
+    @PostMapping(value = "/extractFromFile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public TranscriptionResponseDTO extractSpeechTextFromVideo(@RequestParam("file") MultipartFile file) {
+        log.info("Request to extract Speech Text from Video : {}", file.getContentType());
 
-    @PostMapping("/extractFromFile")
-    public TranscriptionResponseDTO extractSpeechTextFromVideo(MultipartFile file) {
-        log.debug("Request to extract Speech Text from Video : {}", file);
+        if (file.isEmpty()) {
+            // Handle the case when no file is sent
+            // Return an error response or throw an exception
+            throw new IllegalArgumentException("No file sent");
+        }
+
+        String contentType = file.getContentType();
+        if (!isSupportedContentType(contentType)) {
+            // Handle the case when the file is not an audio file
+            // Return an error response or throw an exception
+            throw new IllegalArgumentException("Invalid file type. Only audio files are allowed.");
+        }
 
         // Upload file to Aws
         awsBucketHelper.uploadFileToAwsBucket(file);
@@ -59,5 +75,13 @@ public class TranscriptionController {
         transcriptionService.deleteTranscriptionJob(transcriptionJobName);
 
         return transcriptionResponseDTO;
+    }
+
+
+    private boolean isSupportedContentType(String contentType) {
+        String audioMimeTypePattern = "^audio/.*$";
+        Pattern pattern = Pattern.compile(audioMimeTypePattern);
+        Matcher matcher = pattern.matcher(contentType);
+        return matcher.find();
     }
 }
