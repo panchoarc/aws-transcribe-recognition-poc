@@ -14,19 +14,21 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Slf4j
 @RestController
@@ -40,7 +42,12 @@ public class TranscriptionController {
     private final TranscriptionService transcriptionService;
 
     @Value("${spring.servlet.multipart.max-file-size}")
-    private String maxFileSize;
+    private DataSize maxFileSize;
+
+    private final List<String> supportedFilesList = Arrays.asList("mp3", "wav", "ogg", "flac");
+
+
+    private final String supportedFilesString = StringUtils.join(supportedFilesList, ",");
 
 
     @Tag(name = "Transcription", description = "Transcription APIs")
@@ -55,8 +62,6 @@ public class TranscriptionController {
     @PostMapping(value = "/extractFromFile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> extractSpeechTextFromVideo(@Parameter(description = "Audio file to analyze") @RequestPart("file") MultipartFile file) {
 
-        log.info("Request to extract Speech Text from Video : {}", file.getContentType());
-
         if (file.isEmpty()) {
             // Handle the case when no file is sent
             // Return an error response or throw an exception
@@ -65,16 +70,17 @@ public class TranscriptionController {
 
         // Check file size
         long fileSizeInBytes = file.getSize();
-        long maxFileSizeInBytes = Long.parseLong(maxFileSize); // 50 MB
-        if (fileSizeInBytes > maxFileSizeInBytes) {
+        if (fileSizeInBytes > maxFileSize.toBytes()) {
             return new ResponseEntity<>("File size exceeds the maximum allowed limit of " + maxFileSize + " MB.", HttpStatus.PAYLOAD_TOO_LARGE);
         }
 
         String contentType = file.getContentType();
-        if (!isSupportedContentType(contentType)) {
+        if (!isSupportedContentType(Objects.requireNonNull(contentType), supportedFilesList)) {
             // Handle the case when the file is not an audio file
             // Return an error response or throw an exception
-            return new ResponseEntity<>("Invalid file type. Only audio files are allowed.", HttpStatus.BAD_REQUEST);
+            String response = String.format("Invalid file type. Only %s audio files are allowed", supportedFilesString);
+
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         }
 
         // Upload file to Aws
@@ -93,6 +99,7 @@ public class TranscriptionController {
         // Get result after the processing is complete
         GetTranscriptionJobResult getTranscriptionJobResult = transcriptionService.getTranscriptionJobResult(transcriptionJobName);
 
+
         //delete file as processing is done
         awsBucketHelper.deleteFileFromAwsBucket(key);
 
@@ -109,10 +116,7 @@ public class TranscriptionController {
     }
 
 
-    private boolean isSupportedContentType(String contentType) {
-        String audioMimeTypePattern = "^audio/.*$";
-        Pattern pattern = Pattern.compile(audioMimeTypePattern);
-        Matcher matcher = pattern.matcher(contentType);
-        return matcher.find();
+    private boolean isSupportedContentType(String contentType, List<String> supportedFilesList) {
+        return supportedFilesList.contains(contentType.toLowerCase());
     }
 }
