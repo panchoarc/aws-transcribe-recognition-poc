@@ -44,11 +44,11 @@ public class TranscriptionController {
     @Value("${spring.servlet.multipart.max-file-size}")
     private DataSize maxFileSize;
 
-    private final List<String> supportedFilesList = Arrays.asList("mp3", "wav", "ogg", "flac");
+
+    private final List<String> supportedFilesList = Arrays.asList("mp3", "wav", "ogg", "x-flac", "mpeg");
 
 
     private final String supportedFilesString = StringUtils.join(supportedFilesList, ",");
-
 
     @Tag(name = "Transcription", description = "Transcription APIs")
     @Operation(
@@ -74,7 +74,8 @@ public class TranscriptionController {
             return new ResponseEntity<>("File size exceeds the maximum allowed limit of " + maxFileSize + " MB.", HttpStatus.PAYLOAD_TOO_LARGE);
         }
 
-        String contentType = file.getContentType();
+        String contentType = Objects.requireNonNull(file.getContentType()).split("/")[1];
+        log.info("content Type -> "+contentType);
         if (!isSupportedContentType(Objects.requireNonNull(contentType), supportedFilesList)) {
             // Handle the case when the file is not an audio file
             // Return an error response or throw an exception

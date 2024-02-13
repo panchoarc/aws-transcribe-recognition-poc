@@ -26,7 +26,7 @@ public class AwsBucket {
         log.debug("Upload file to AWS Bucket {}", file);
         String key = Objects.requireNonNull(file.getOriginalFilename()).replaceAll(" ", "_").toLowerCase();
         try {
-            PutObjectResult putObjectResult = s3Client.putObject(bucketName, key, file.getInputStream(), null);
+            s3Client.putObject(bucketName, key, file.getInputStream(), null);
         } catch (SdkClientException | IOException e) {
             e.printStackTrace();
         }
