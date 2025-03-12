@@ -1,4 +1,4 @@
-package com.panchodev.ASR;
+package com.panchodev.asr;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

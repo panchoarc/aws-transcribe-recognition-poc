@@ -1,0 +1,17 @@
+aws:
+  s3:
+    useLocalStack: true
+    bucket-name: my-test-bucket
+    localstackEndpoint: http://s3.localhost.localstack.cloud:4566
+    region: us-east-1
+  transcribe:
+    localstackEndpoint: http://transcribe.localhost.localstack.cloud:4566
+    region: us-east-1
+
+
+spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 20MB
+      max-request-size: 20MB
