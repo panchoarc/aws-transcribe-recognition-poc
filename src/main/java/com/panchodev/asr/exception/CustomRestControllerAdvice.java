@@ -37,7 +37,7 @@ public class CustomRestControllerAdvice {
 
     @ExceptionHandler(HandlerMethodValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiResponse<Void> handleMethodValidationException(HandlerMethodValidationException ex) {
+    public ApiResponse<Void> handleMethodValidationException() {
 
         Map<String, String> errors = new HashMap<>();
         errors.put(MESSAGE, "File Format Error");
