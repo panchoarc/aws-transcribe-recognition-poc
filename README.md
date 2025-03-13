@@ -11,17 +11,50 @@ Before running the project, make sure you have the following:
 - AWS region for the bucket
 
 ## Environment Variables
-To run this project, you need to set the following environment variables in your `application.properties` file:
+To run this project, you need to set the following environment variables in your `application-dev.yml` file:
 
 ```properties
-aws.awsAccessKey=YOUR_AWS_ACCESS_KEY
-aws.awsSecretKey=YOUR_AWS_SECRET_KEY
-aws.bucketName=BUCKET_NAME_FOR_DEPOSIT_FILES
-aws.awsRegion=REGION_OF_THE_BUCKET
+aws:
+    s3:
+        useLocalStack: true
+        bucket-name: <YOUR_BUCKET_NAME>
+        localstackEndpoint: <YOUR_S3_LOCALSTACK_ENDPOINT>
+        region: <YOUR_AWS_S3_REGION>
+    transcribe:
+        localstackEndpoint: <YOUR_TRANSCRIBE_LOCALSTACK_ENDPOINT>
+        region: <YOUR_AWS_TRANSCRIBE_REGION>
 
-spring.servlet.multipart.max-file-size=FILE SIZE WITH THE CORRECT INFORMATION UNIT (KB,MB,GB)
-spring.servlet.multipart.max-request-size=SAME AS spring.servlet.multipart.max-file-size property
+
+spring:
+    servlet:
+        multipart:
+            enabled: true
+            max-file-size: <FILE SIZE WITH THE CORRECT INFO (KB,MB,GB)>
+            max-request-size: <REQUEST SIZE WITH THE CORRECT INFO (KB,MB,GB)>
 ```
+In case you want to use production properties, here's a template.
+
+```properties
+aws:
+    s3:
+        useLocalStack: false
+        bucket-name: <YOUR_BUCKET_NAME>
+        region: <YOUR_AWS_S3_REGION>
+    transcribe:
+        region: <YOUR_AWS_TRANSCRIBE_REGION>
+
+
+spring:
+    servlet:
+        multipart:
+            enabled: true
+            max-file-size: <FILE SIZE WITH THE CORRECT INFO (KB,MB,GB)>
+            max-request-size: <REQUEST SIZE WITH THE CORRECT INFO (KB,MB,GB)>
+```
+
+
+
+
 
 
 # Step 1: Clone the Project Repository
@@ -57,12 +90,21 @@ java -jar <path_to_jar_file>
 Replace <path_to_jar_file> with the path to the generated JAR file, usually located in the target directory.
 
 ## Building and Running the Docker Image
+
 Follow these steps to build and run the Docker image:
 
 1. Ensure Docker is installed and running on your system.
 2. Open a terminal or command prompt.
 3. Navigate to the project directory where the Dockerfile is located.
 4. Build the Docker image using the following command:
+
+
+For Localstack
+```bash
+docker compose up -d
+```
+
+For Application
 
 ```bash
 docker build -t <image_name> .
