@@ -18,6 +18,9 @@ aws.awsAccessKey=YOUR_AWS_ACCESS_KEY
 aws.awsSecretKey=YOUR_AWS_SECRET_KEY
 aws.bucketName=BUCKET_NAME_FOR_DEPOSIT_FILES
 aws.awsRegion=REGION_OF_THE_BUCKET
+
+spring.servlet.multipart.max-file-size=FILE SIZE WITH THE CORRECT INFORMATION UNIT (KB,MB,GB)
+spring.servlet.multipart.max-request-size=SAME AS spring.servlet.multipart.max-file-size property
 ```
 
 
