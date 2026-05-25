@@ -1,0 +1,24 @@
+aws:
+  useLocalStack: true
+  region: us-east-1
+  bucketName: transcription-bucket
+  accessKey: test
+  secretKey: test
+  s3:
+    endpoint: http://localhost:4566
+
+  transcribe:
+    endpoint: http://localhost:4566
+
+
+spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+
+springdoc:
+  api-docs:
+    version: openapi_3_0
