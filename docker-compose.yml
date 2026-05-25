@@ -14,7 +14,7 @@ services:
     volumes:
       - localstack_data:/var/lib/localstack
       - /var/run/docker.sock:/var/run/docker.sock
-      - "./ministack/scripts/:/etc/localstack/init/ready.d"
+      - "./ministack/scripts/:/etc/localstack/init/ready.d/"
 
     restart: unless-stopped
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 echo "===> [S3] Creando bucket en Ministack..."
 
@@ -13,7 +13,7 @@ awslocal --endpoint-url=$ENDPOINT s3api create-bucket \
 echo "===> [S3] Configurando CORS..."
 awslocal --endpoint-url=$ENDPOINT s3api put-bucket-cors \
   --bucket $BUCKET_NAME \
-  --cors-configuration file:///etc/ministack/init/ready.d/cors.json
+  --cors-configuration file:///etc/localstack/init/ready.d/cors.json
 
 # Listar buckets
 echo "===> [S3] Buckets:"
