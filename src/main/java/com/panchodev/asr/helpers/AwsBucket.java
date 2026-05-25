@@ -1,4 +1,4 @@
-package com.panchodev.ASR.helpers;
+package com.panchodev.asr.helpers;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

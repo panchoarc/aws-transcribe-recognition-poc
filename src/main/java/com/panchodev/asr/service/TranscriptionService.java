@@ -1,7 +1,7 @@
-package com.panchodev.ASR.service;
+package com.panchodev.asr.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.panchodev.ASR.dto.TranscriptionResponseDTO;
+import com.panchodev.asr.dto.TranscriptionResponseDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

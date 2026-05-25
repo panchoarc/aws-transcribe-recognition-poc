@@ -1,4 +1,4 @@
-package com.panchodev.ASR;
+package com.panchodev.asr;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

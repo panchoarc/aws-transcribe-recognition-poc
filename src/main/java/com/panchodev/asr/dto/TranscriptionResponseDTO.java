@@ -1,4 +1,4 @@
-package com.panchodev.ASR.dto;
+package com.panchodev.asr.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;

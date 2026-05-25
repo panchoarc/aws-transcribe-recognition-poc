@@ -1,8 +1,8 @@
-package com.panchodev.ASR.controller;
+package com.panchodev.asr.controller;
 
-import com.panchodev.ASR.dto.TranscriptionResponseDTO;
-import com.panchodev.ASR.helpers.AwsBucket;
-import com.panchodev.ASR.service.TranscriptionService;
+import com.panchodev.asr.dto.TranscriptionResponseDTO;
+import com.panchodev.asr.helpers.AwsBucket;
+import com.panchodev.asr.service.TranscriptionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
