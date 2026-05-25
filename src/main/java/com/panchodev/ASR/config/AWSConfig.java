@@ -1,48 +1,73 @@
 package com.panchodev.ASR.config;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.transcribe.AmazonTranscribe;
-import com.amazonaws.services.transcribe.AmazonTranscribeClientBuilder;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.transcribe.TranscribeClient;
+
+import java.net.URI;
 
 @Configuration
+@RequiredArgsConstructor
 @Slf4j
 public class AWSConfig {
 
-    @Value("${aws.awsAccessKey}")
-    private String awsAccessKey;
-
-    @Value("${aws.awsSecretKey}")
-    private String awsSecretKey;
-
-    @Value("${aws.awsRegion}")
-    private String awsRegion;
-
+    private final AwsProperties props;
 
     @Bean
-    AmazonTranscribe transcribeClient() {
-        log.debug("Intialize Transcribe Client");
-        AWSStaticCredentialsProvider awsStaticCredentialsProvider = getAwsStaticCredentialsProvider();
-        return AmazonTranscribeClientBuilder.standard().withCredentials(awsStaticCredentialsProvider)
-                .withRegion(awsRegion).build();
-    }
+    public S3Client s3Client() {
 
-    private AWSStaticCredentialsProvider getAwsStaticCredentialsProvider() {
-        BasicAWSCredentials awsCreds = new BasicAWSCredentials(awsAccessKey, awsSecretKey);
-        return new AWSStaticCredentialsProvider(awsCreds);
+        var builder = S3Client.builder()
+                .region(Region.US_EAST_1)
+                .credentialsProvider(credentials());
+
+        if (props.isUseLocalStack()) {
+            log.info("Using LocalStack S3");
+
+            builder.endpointOverride(URI.create(props.getS3().getEndpoint()))
+                    .serviceConfiguration(
+                            S3Configuration.builder()
+                                    .pathStyleAccessEnabled(true)
+                                    .build()
+                    );
+        }
+
+        return builder.build();
     }
 
     @Bean
-    AmazonS3 s3Client() {
-        log.debug("Intialize AWS S3 Client");
-        AWSStaticCredentialsProvider awsStaticCredentialsProvider = getAwsStaticCredentialsProvider();
-        return AmazonS3ClientBuilder.standard().withCredentials(awsStaticCredentialsProvider).withRegion(awsRegion)
-                .build();
+    public TranscribeClient transcribeClient() {
+
+        var builder = TranscribeClient.builder()
+                .region(Region.US_EAST_1)
+                .credentialsProvider(credentials());
+
+        if (props.isUseLocalStack()) {
+            log.info("Using LocalStack Transcribe");
+            builder.endpointOverride(URI.create(props.getTranscribe().getEndpoint()));
+        }
+
+        return builder.build();
+    }
+
+    private AwsCredentialsProvider credentials() {
+
+        if (props.isUseLocalStack()) {
+            return StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create("test", "test")
+            );
+        }
+
+        return DefaultCredentialsProvider.create();
     }
 }

@@ -1,111 +1,96 @@
 package com.panchodev.ASR.service;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.transcribe.AmazonTranscribe;
-import com.amazonaws.services.transcribe.model.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.panchodev.ASR.dto.TranscriptionResponseDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import software.amazon.awssdk.services.transcribe.TranscribeClient;
+import software.amazon.awssdk.services.transcribe.model.*;
 
-import java.io.IOException;
-import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 @Service
-@Slf4j
 @RequiredArgsConstructor
+@Slf4j
 public class TranscriptionService {
 
-
-    private final AmazonS3 s3Client;
-
-    private final AmazonTranscribe transcribeClient;
+    private final TranscribeClient transcribeClient;
 
     @Value("${aws.bucketName}")
     private String bucketName;
 
-    public StartTranscriptionJobResult startTranscriptionJob(String key) {
-        log.debug("Start Transcription Job By Key {}", key);
-        String uuid = UUID.randomUUID().toString();
+    // -----------------------------------------
+    // START JOB
+    // -----------------------------------------
+    public String startTranscriptionJob(String key) {
 
+        String jobName = UUID.randomUUID() + "-" +
+                key.replaceAll("[^a-zA-Z0-9._-]", "_");
 
-        Media media = new Media().withMediaFileUri(s3Client.getUrl(bucketName, key).toExternalForm());
-        String jobName = uuid.concat(key);
-        StartTranscriptionJobRequest startTranscriptionJobRequest = new StartTranscriptionJobRequest()
-                .withLanguageCode(LanguageCode.EnUS).withTranscriptionJobName(jobName).withMedia(media);
-        return transcribeClient
-                .startTranscriptionJob(startTranscriptionJobRequest);
-    }
+        String mediaUri = "s3://" + bucketName + "/" + key;
 
+        String ext = key.substring(key.lastIndexOf('.') + 1).toLowerCase();
 
-    public GetTranscriptionJobResult getTranscriptionJobResult(String jobName) {
-        log.debug("Get Transcription Job Result By Job Name : {}", jobName);
-        GetTranscriptionJobRequest getTranscriptionJobRequest = new GetTranscriptionJobRequest()
-                .withTranscriptionJobName(jobName);
-        boolean resultFound = false;
-        TranscriptionJob transcriptionJob;
-        GetTranscriptionJobResult getTranscriptionJobResult = new GetTranscriptionJobResult();
-        while (!resultFound) {
-            getTranscriptionJobResult = transcribeClient.getTranscriptionJob(getTranscriptionJobRequest);
-            transcriptionJob = getTranscriptionJobResult.getTranscriptionJob();
-            if (transcriptionJob.getTranscriptionJobStatus()
-                    .equalsIgnoreCase(TranscriptionJobStatus.COMPLETED.name())) {
-                return getTranscriptionJobResult;
-            } else if (transcriptionJob.getTranscriptionJobStatus()
-                    .equalsIgnoreCase(TranscriptionJobStatus.FAILED.name())) {
-                return null;
-            } else if (transcriptionJob.getTranscriptionJobStatus()
-                    .equalsIgnoreCase(TranscriptionJobStatus.IN_PROGRESS.name())) {
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    log.debug("Interrupted Exception {}", e.getMessage());
-                }
-            }
-        }
-        return getTranscriptionJobResult;
-    }
+        MediaFormat format = switch (ext) {
+            case "mp3" -> MediaFormat.MP3;
+            case "wav" -> MediaFormat.WAV;
+            case "flac" -> MediaFormat.FLAC;
+            case "ogg" -> MediaFormat.OGG;
+            default -> throw new IllegalArgumentException("Unsupported format");
+        };
 
-    /******************Step 6 **************************
-     *  Download Transcription Result from URI Method *********/
-
-    public TranscriptionResponseDTO downloadTranscriptionResponse(String uri) {
-        log.debug("Download Transcription Result from Transcribe URi {}", uri);
-        OkHttpClient okHttpClient = new OkHttpClient()
-                .newBuilder()
-                .connectTimeout(60, TimeUnit.SECONDS)
-                .writeTimeout(60, TimeUnit.SECONDS)
-                .readTimeout(60, TimeUnit.SECONDS)
+        StartTranscriptionJobRequest request = StartTranscriptionJobRequest.builder()
+                .transcriptionJobName(jobName)
+                .media(Media.builder().mediaFileUri(mediaUri).build())
+                .mediaFormat(format)
+                .languageCode(LanguageCode.ES_ES)
                 .build();
-        Request request = new Request.Builder().url(uri).build();
-        Response response;
-        try {
-            response = okHttpClient.newCall(request).execute();
-            String body = Objects.requireNonNull(response.body()).string();
-            ObjectMapper objectMapper = new ObjectMapper();
-            response.close();
-            return objectMapper.readValue(body, TranscriptionResponseDTO.class);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
+
+        transcribeClient.startTranscriptionJob(request);
+
+        log.info("Started job: {}", jobName);
+
+        return jobName;
     }
 
-    /***************************** Step 7 *****************************
-     * **** Delete Transcription Job Method ************
-     * TO delete transcription job after getting result****/
+    // -----------------------------------------
+    // GET JOB (RAW)
+    // -----------------------------------------
+    public TranscriptionJob getJob(String jobName) {
 
-    public void deleteTranscriptionJob(String jobName) {
-        log.debug("Delete Transcription Job from amazon Transcribe {}", jobName);
-        DeleteTranscriptionJobRequest deleteTranscriptionJobRequest = new DeleteTranscriptionJobRequest()
-                .withTranscriptionJobName(jobName);
-        transcribeClient.deleteTranscriptionJob(deleteTranscriptionJobRequest);
+        return transcribeClient.getTranscriptionJob(
+                r -> r.transcriptionJobName(jobName)
+        ).transcriptionJob();
+    }
+
+    // -----------------------------------------
+    // GET STATUS ONLY
+    // -----------------------------------------
+    public TranscriptionJobStatus getJobStatus(String jobName) {
+        return getJob(jobName).transcriptionJobStatus();
+    }
+
+    // -----------------------------------------
+    // DOWNLOAD RESULT JSON
+    // -----------------------------------------
+    public TranscriptionResponseDTO downloadTranscriptionResponse(String uri) {
+
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+
+            // 1. Obtener respuesta como String (RAW)
+            String json = restTemplate.getForObject(uri, String.class);
+
+            // 2. Parsear manualmente con Jackson
+            ObjectMapper mapper = new ObjectMapper();
+
+            return mapper.readValue(json, TranscriptionResponseDTO.class);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse transcription response", e);
+        }
     }
 }

@@ -1,40 +1,67 @@
 package com.panchodev.ASR.helpers;
 
-import com.amazonaws.SdkClientException;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.PutObjectResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
-import java.util.Objects;
 
+@Component
 @Slf4j
 @RequiredArgsConstructor
-@Service
 public class AwsBucket {
 
-    private final AmazonS3 s3Client;
+    private final S3Client s3Client;
 
     @Value("${aws.bucketName}")
     private String bucketName;
 
-    public void uploadFileToAwsBucket(MultipartFile file) {
-        log.debug("Upload file to AWS Bucket {}", file);
-        String key = Objects.requireNonNull(file.getOriginalFilename()).replaceAll(" ", "_").toLowerCase();
+    public void uploadFileToAwsBucket(
+            MultipartFile file,
+            String key
+    ) {
+
         try {
-            PutObjectResult putObjectResult = s3Client.putObject(bucketName, key, file.getInputStream(), null);
-        } catch (SdkClientException | IOException e) {
-            e.printStackTrace();
+
+            PutObjectRequest putObjectRequest =
+                    PutObjectRequest.builder()
+                            .bucket(bucketName)
+                            .key(key)
+                            .contentType(file.getContentType())
+                            .build();
+
+            s3Client.putObject(
+                    putObjectRequest,
+                    RequestBody.fromBytes(file.getBytes())
+            );
+
+            log.info("File uploaded to S3: {}", key);
+
+        } catch (IOException e) {
+
+            throw new RuntimeException(
+                    "Error uploading file to S3",
+                    e
+            );
         }
     }
 
-    public void deleteFileFromAwsBucket(String fileName) {
-        log.debug("Delete File from AWS Bucket {}", fileName);
-        String key = fileName.replaceAll(" ", "_").toLowerCase();
-        s3Client.deleteObject(bucketName, key);
+    public void deleteFileFromAwsBucket(String key) {
+
+        DeleteObjectRequest deleteObjectRequest =
+                DeleteObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(key)
+                        .build();
+
+        s3Client.deleteObject(deleteObjectRequest);
+
+        log.info("File deleted from S3: {}", key);
     }
 }
