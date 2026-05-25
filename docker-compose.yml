@@ -1,18 +1,22 @@
 services:
   localstack:
     image: localstack/localstack:4
-    container_name: asr-localstack
+    container_name: ASR-localstack
+
+    ports:
+      - "4566:4566"
+
     environment:
       - SERVICES=s3,transcribe
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
-    ports:
-      - "4566:4566"            # LocalStack Gateway
-      - "4510-4559:4510-4559"  # external services port range
+      - DEBUG=1
+      - AWS_DEFAULT_REGION=us-east-1
+
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-      - "asr_localstack_data:/var/lib/localstack"
+      - localstack_data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "./ministack/scripts/:/etc/localstack/init/ready.d"
+
     restart: unless-stopped
 
 volumes:
-  asr_localstack_data:
+  localstack_data:

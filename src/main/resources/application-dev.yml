@@ -1,12 +1,14 @@
 aws:
+  useLocalStack: true
+  region: us-east-1
+  bucketName: transcription-bucket
+  accessKey: test
+  secretKey: test
   s3:
-    useLocalStack: true
-    bucket-name: my-test-bucket
-    localstackEndpoint: http://s3.localhost.localstack.cloud:4566
-    region: us-east-1
+    endpoint: http://localhost:4566
+
   transcribe:
-    localstackEndpoint: http://transcribe.localhost.localstack.cloud:4566
-    region: us-east-1
+    endpoint: http://localhost:4566
 
 
 spring:
@@ -15,3 +17,8 @@ spring:
       enabled: true
       max-file-size: 20MB
       max-request-size: 20MB
+
+
+springdoc:
+  api-docs:
+    version: openapi_3_0
